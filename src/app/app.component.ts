@@ -267,3 +267,119 @@ export class NumberInputComponent implements ControlValueAccessor, OnInit {
     });
   }
 }
+
+<input
+  #inputEl
+  type="text"
+  inputmode="decimal"
+  autocomplete="off"
+  spellcheck="false"
+  [class]="styleClass"
+  [ngStyle]="inputStyle"
+  [value]="displayValue"
+  [placeholder]="placeholder"
+  (input)="onInput($event)"
+  (keydown)="onKeyDown($event)"
+  (paste)="onPaste($event)"
+  (blur)="onBlur()"
+/>
+
+/**
+ * NumberInputComponent base styles.
+ *
+ * Intentionally minimal — all visual styling belongs to the consumer.
+ * Override via [styleClass] or [inputStyle] inputs.
+ */
+
+:host {
+  // Component adds no layout wrapper — behaves like a native element
+  display: contents;
+}
+
+input {
+  // Inherit everything from the parent context by default
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: none;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+
+  // Numbers read better right-aligned; override with styleClass if needed
+  text-align: right;
+
+  // Remove browser number-input arrows (just in case type ever changes)
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  // Firefox
+  &[type='number'] {
+    -moz-appearance: textfield;
+  }
+}
+
+
+import {
+  Component,
+  ViewChild,
+  AfterViewInit,
+} from '@angular/core';
+import { ICellEditorAngularComp } from 'ag-grid-angular';
+import { FormsModule } from '@angular/forms';
+import { NumberInputComponent, NumberCellEditorParams } from './number-input.component';
+
+@Component({
+  selector: 'app-number-cell-editor',
+  standalone: true,
+  imports: [NumberInputComponent, FormsModule],
+  template: `
+    <app-number-input
+      #numberInput
+      [styleClass]="styleClass"
+      [placeholder]="placeholder"
+      [(ngModel)]="currentValue"
+    />
+  `,
+  styles: [`
+    :host {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      height: 100%;
+    }
+  `],
+})
+export class NumberCellEditorComponent implements ICellEditorAngularComp, AfterViewInit {
+  @ViewChild('numberInput') numberInput!: NumberInputComponent;
+
+  currentValue: number | null = null;
+  styleClass: string = 'ag-cell-editor-input';
+  placeholder: string = '0';
+
+  // ── ICellEditorAngularComp ──────────────────────────────────────────────────
+
+  agInit(params: NumberCellEditorParams): void {
+    this.currentValue = params.value ?? null;
+    this.styleClass = params.styleClass ?? 'ag-cell-editor-input';
+    this.placeholder = params.placeholder ?? '0';
+  }
+
+  afterGuiAttached(): void {
+    // Auto-focus when the cell editor opens
+    this.numberInput.focusInput();
+  }
+
+  /** Called by AG Grid to retrieve the final committed value */
+  getValue(): number | null {
+    return this.numberInput.getValue();
+  }
+
+  /** Render inline inside the cell (not as a popup) */
+  isPopup(): boolean {
+    return false;
+  }
+}
